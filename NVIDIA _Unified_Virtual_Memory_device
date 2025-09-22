@@ -71,3 +71,40 @@ CPU Memory: int* h_data              int* data (works on both!)
 GPU Memory: int* d_data              
 cudaMemcpy(d_data, h_data, ...)     No explicit copies needed!
 ```
+## Why the I/O Error Happens:
+
+```
+Your Current Problem:
+────────────────────
+1. nvidia-smi works     → nvidia.ko loaded ✓
+2. GPUs visible         → /dev/nvidia0-3 working ✓
+3. CUDA fails           → /dev/nvidia-uvm broken ✗
+
+The nvidia_uvm module creates /dev/nvidia-uvm
+When CUDA runtime starts, it needs this device for:
+- Memory page migration
+- Unified addressing
+- GPU memory allocation tracking
+```
+### Fix Sequence
+
+```
+# 1. Check current state
+ls -la /dev/nvidia-uvm
+# Shows: crw-rw-rw- 1 root root 503, 0 ... (but gives I/O error)
+
+# 2. Check if module is loaded
+lsmod | grep nvidia_uvm
+# If not shown or shows 0 usage, it's the problem
+
+# 3. Reload the module
+sudo rmmod nvidia_uvm
+sudo modprobe nvidia_uvm
+
+# 4. Verify it created the device properly
+sudo nvidia-modprobe -u -c=0
+
+# 5. Test
+./test_cuda_init
+```
+
