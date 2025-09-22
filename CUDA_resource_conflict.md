@@ -32,8 +32,13 @@ sudo pkill -f ollama
 
 **Step 3: Reloaded the nvidia-uvm module**
 ```bash
-sudo rmmod nvidia_uvm
-sudo modprobe nvidia_uvm
+sudo rmmod nvidia_uvm #rmmod removes a loaded kernel module from the running Linux kernel, essentially unloading driver code from memory.
+sudo modprobe nvidia_uvm # modprobe loads a kernel module into the running Linux kernel, automatically handling any dependencies by loading required modules first.
+# Check if device was recreated
+ls -la /dev/nvidia-uvm
+
+# Test again
+./test_minimal
 ```
 This cleared any corrupted state in the CUDA subsystem and recreated the `/dev/nvidia-uvm` device.
 
