@@ -1,0 +1,73 @@
+# NVIDIA Unified Virtual Memory device
+
+```
+NVIDIA UVM architecture in your 4-GPU environment:
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           YOUR SYSTEM ARCHITECTURE                       │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  USER SPACE APPLICATIONS                                                │
+│  ┌──────────────────┐  ┌──────────────────┐  ┌───────────────────┐    │
+│  │  Hawkes Engine   │  │   CUDA Programs  │  │   nvidia-smi      │    │
+│  │  (Your Code)     │  │                  │  │                   │    │
+│  └────────┬─────────┘  └────────┬─────────┘  └────────┬─────────┘    │
+│           │                      │                      │              │
+│  ─────────┴──────────────────────┴──────────────────────┴───────────   │
+│                                                                          │
+│  CUDA RUNTIME API (libcudart.so)                                       │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │  cudaMalloc, cudaMemcpy, cudaLaunch, etc.                        │  │
+│  └──────────────────┬───────────────────────────────────────────────┘  │
+│                     │                                                   │
+│  ─────────────────────────────────────────────────────────────────────  │
+│                                                                          │
+│  CUDA DRIVER API (libcuda.so)                                          │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │  Low-level GPU management                                         │  │
+│  └──────────────────┬───────────────────────────────────────────────┘  │
+│                     │                                                   │
+├─────────────────────┼────────────────────────────────────────────────┤
+│  KERNEL SPACE       │                                                   │
+│                     ▼                                                   │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │                    NVIDIA KERNEL MODULES                          │  │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌──────────────────────────┐ │  │
+│  │  │   nvidia    │  │nvidia_modeset│ │    nvidia_uvm             │ │  │
+│  │  │  (Core GPU) │  │  (Display)   │ │ (Unified Virtual Memory)  │ │  │
+│  │  └──────┬──────┘  └──────┬───────┘ └────────┬─────────────────┘ │  │
+│  └─────────┼─────────────────┼──────────────────┼────────────────────┘  │
+│            │                 │                  │                       │
+│  ─────────┼─────────────────┼──────────────────┼─────────────────────  │
+│  DEVICE FILES (in /dev/)     │                  │                       │
+│            │                 │                  │                       │
+│  ┌─────────▼──────┐ ┌───────▼────────┐ ┌──────▼──────────┐           │
+│  │ /dev/nvidia0-3 │ │/dev/nvidia-modeset│ │ /dev/nvidia-uvm │ ← ERROR │
+│  │  (GPU devices) │ │                │ │    (I/O Error)   │           │
+│  └────────────────┘ └────────────────┘ └──────────────────┘           │
+│                                                                          │
+├─────────────────────────────────────────────────────────────────────────┤
+│                         PHYSICAL HARDWARE                               │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐              │
+│  │  GPU 0   │  │  GPU 1   │  │  GPU 2   │  │  GPU 3   │              │
+│  │ RTX 3070 │  │ RTX 3070 │  │ RTX 3070 │  │ RTX 3070 │              │
+│  │  8GB     │  │  8GB     │  │  8GB     │  │  8GB     │              │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘              │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+## What is NVIDIA UVM (Unified Virtual Memory)?
+UVM is a memory management system that allows:
+
+Unified Address Space: CPU and GPU share a single virtual address space
+
+Automatic Migration: Data automatically moves between CPU RAM and GPU VRAM as needed
+
+Simplified Programming: You can use regular pointers instead of managing separate CPU/GPU memory
+
+```
+Without UVM:                         With UVM:
+─────────────                        ────────────
+CPU Memory: int* h_data              int* data (works on both!)
+GPU Memory: int* d_data              
+cudaMemcpy(d_data, h_data, ...)     No explicit copies needed!
+```
